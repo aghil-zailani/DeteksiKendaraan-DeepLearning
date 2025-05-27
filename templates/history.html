@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Riwayat Deteksi</h1>
+
+<div class="table-box">
+    <table id="historyTable" class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Gambar</th>
+                <th>Label</th>
+                <th>Confidence</th>
+                <th>Waktu</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for filename, predictions in grouped.items() %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><img src="{{ url_for('static', filename='results/result_' + filename) }}" width="100"></td>
+                <td>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        {% for p in predictions %}
+                        <li>{{ p['label'] }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        {% for p in predictions %}
+                        <li>{{ '%.2f'|format(p['confidence']) }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td>{{ predictions[0]['waktu'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#historyTable').DataTable({
+            "pageLength": 10
+        });
+    });
+</script>
+{% endblock %}

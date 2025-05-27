@@ -1,0 +1,189 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<!-- Total Gambar -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="p-3 bg-primary text-white rounded text-center">
+            <h4>Total Gambar Diupload</h4>
+            <h2>{{ total_images }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Upload File -->
+<div class="card p-4 mb-4 shadow-sm text-center">
+  <h4 class="mb-3">Upload Gambar</h4>
+  <form method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+          <label for="imageUpload" class="form-label">Pilih Gambar</label>
+          <input class="form-control" type="file" name="image" id="imageUpload" accept="image/*,video/*" required>
+      </div>
+      <button class="btn btn-primary w-100" type="submit">Upload</button>
+  </form>
+</div>
+
+<!-- Hasil Deteksi -->
+{% if result_image %}
+<div class="card p-4 shadow-sm mb-4">
+  <h5 class="mb-3">Hasil Deteksi Gambar</h5>
+  <img src="{{ url_for('static', filename='results/' + result_image) }}" class="img-fluid rounded mx-auto d-block" style="max-width: 400px; height: auto;">
+
+  {% if labels_detected %}
+  <div class="mt-3">
+    <h6>Deskripsi:</h6>
+    {% set label_count = labels_detected | length %}
+    {% set label_dict = {} %}
+    {% for label in labels_detected %}
+        {% set _ = label_dict.update({label: label_dict.get(label, 0) + 1}) %}
+    {% endfor %}
+    <p>Pada gambar yang diupload berhasil mendeteksi <strong>{{ label_count }}</strong> kendaraan dengan rincian:</p>
+    <ul> 
+      {% for key, value in label_dict.items() %}
+        <li>{{ key|capitalize }}: {{ value }} buah</li>
+      {% endfor %}
+    </ul>
+
+    <h6>Detail Prediksi:</h6>
+    <ul>
+      {% for item in detection_details %}
+        <li>{{ item.label|capitalize }} - Akurasi: {{ item.confidence }}</li>
+      {% endfor %}
+    </ul>
+
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if result_video %}
+<div class="result-box mt-4">
+    <h3>Hasil Deteksi Video</h3>
+    <video width="640" height="480" controls class="mt-3">
+      <source src="{{ url_for('static', filename='results/' + result_video) }}" type="video/mp4">
+      Browser Anda tidak mendukung tag video.
+    </video>    
+    <div class="mt-3">
+        <a href="{{ url_for('static', filename='results/' + result_video) }}" download class="btn btn-success mt-2">Download Hasil Video</a>
+    </div>
+    <!-- {% if total_detected %}
+    <div class="mt-3">
+        <h5>Total Kendaraan Terdeteksi di Video:</h5>
+        <h2>{{ total_detected }}</h2>
+    </div>
+    {% endif %}  -->
+</div>
+{% endif %}
+
+
+<!-- Chart -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="p-4 bg-light rounded">
+            <h4 class="text-center">Jumlah Kendaraan Terdeteksi</h4>
+            <div id="chartdiv"></div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Styles for Chart -->
+<style>
+    #chartdiv {
+      width: 100%;
+      height: 500px;
+    }
+</style>
+
+<!-- Load amCharts Library -->
+<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+
+<!-- Chart code -->
+<script>
+am5.ready(function() {
+
+    var labels = {{ label_counts.keys() | default([]) | list | safe }};
+    var counts = {{ label_counts.values() | default([]) | list | safe }};
+
+
+    // Gabungkan label dan count jadi array objek [{country: label, value: count}, ...]
+    var chartData = [];
+    for (var i = 0; i < labels.length; i++) {
+        chartData.push({
+            country: labels[i],
+            value: counts[i]
+        });
+    }
+
+
+    // Create root
+    var root = am5.Root.new("chartdiv");
+
+    root.setThemes([
+      am5themes_Animated.new(root)
+    ]);
+
+    var chart = root.container.children.push(am5xy.XYChart.new(root, {
+      panX: true,
+      panY: true,
+      wheelX: "panX",
+      wheelY: "zoomX",
+      pinchZoomX: true
+    }));
+
+    var cursor = chart.set("cursor", am5xy.XYCursor.new(root, {}));
+    cursor.lineY.set("visible", false);
+
+    var xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 30 });
+    xRenderer.labels.template.setAll({
+      rotation: -45,
+      centerY: am5.p50,
+      centerX: am5.p100,
+      paddingRight: 15
+    });
+
+    var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
+      categoryField: "country",
+      renderer: xRenderer,
+      tooltip: am5.Tooltip.new(root, {})
+    }));
+
+    var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+      renderer: am5xy.AxisRendererY.new(root, {})
+    }));
+
+    var series = chart.series.push(am5xy.ColumnSeries.new(root, {
+      name: "Jumlah Kendaraan",
+      xAxis: xAxis,
+      yAxis: yAxis,
+      valueYField: "value",
+      categoryXField: "country",
+      tooltip: am5.Tooltip.new(root, {
+        labelText:"{valueY}"
+      })
+    }));
+
+    series.columns.template.setAll({ cornerRadiusTL: 5, cornerRadiusTR: 5, strokeOpacity: 0 });
+    series.columns.template.adapters.add("fill", (fill, target) => {
+      return chart.get("colors").getIndex(series.columns.indexOf(target));
+    });
+
+    series.columns.template.adapters.add("stroke", (stroke, target) => {
+      return chart.get("colors").getIndex(series.columns.indexOf(target));
+    });
+
+    xAxis.data.setAll(chartData);
+    series.data.setAll(chartData);
+
+    series.appear(1000);
+    chart.appear(1000, 100);
+
+}); // end am5.ready()
+</script>
+
+{% endblock %}
