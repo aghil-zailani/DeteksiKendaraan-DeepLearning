@@ -1,189 +1,176 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<div class="page-header">
+    <h1>Dashboard</h1>
+    <p class="page-subtitle">Analisis dan statistik deteksi kendaraan</p>
+</div>
 
-<!-- Total Gambar -->
-<div class="row mb-4">
-    <div class="col">
-        <div class="p-3 bg-primary text-white rounded text-center">
-            <h4>Total Gambar Diupload</h4>
-            <h2>{{ total_images }}</h2>
+<div class="card mb-5">
+    <div class="card-body p-5">
+        <h3 class="mb-4 fw-bold text-center">
+            <i class="bi bi-bar-chart-line-fill me-2"></i> Histogram Persebaran Jumlah Kendaraan dan Pengguna Jalan
+        </h3>
+        <div class="row g-4 align-items-center">
+            <div class="col-md-6">
+                <div class="image-with-shadow">
+                    <img src="{{ url_for('static', filename='grafik/grafik1.png') }}" class="img-fluid rounded" alt="Grafik Histogram Persebaran Kendaraan">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="description-box">
+                    <p class="mb-3">
+                        Histogram ini menggambarkan frekuensi jumlah kendaraan (motor, mobil, bus, truk) dan pengguna jalan yang terdeteksi.
+                    </p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-dot me-2 text-primary"></i> Motor: Sebagian besar hari tercatat antara 1.200 - 1.400 motor, dengan puncak di 1.200 motor/hari. Distribusi cenderung merata.</li>
+                        <li><i class="bi bi-dot me-2 text-primary"></i> Mobil: Puncak frekuensi berada di sekitar 1.200 mobil/hari, dengan kecenderungan distribusi sedikit miring ke kanan.</li>
+                        <li><i class="bi bi-dot me-2 text-primary"></i> Bus: Distribusi cenderung datar di puncak (sekitar 1.200 bus/hari), dengan indikasi adanya hari-hari dengan jumlah bus lebih tinggi (1.400 - 1.800).</li>
+                        <li><i class="bi bi-dot me-2 text-primary"></i> Truk: Distribusi miring ke kanan, menunjukkan lebih banyak hari dengan jumlah truk lebih rendah, namun ada hari dengan jumlah truk sangat tinggi (hingga >1.800).</li>
+                        <li><i class="bi bi-dot me-2 text-primary"></i> Pengguna Jalan: Frekuensi tertinggi berada di sekitar 600 pengguna/hari, dengan rentang deteksi antara 300 - 900 pengguna/hari.</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Upload File -->
-<div class="card p-4 mb-4 shadow-sm text-center">
-  <h4 class="mb-3">Upload Gambar</h4>
-  <form method="POST" enctype="multipart/form-data">
-      <div class="mb-3">
-          <label for="imageUpload" class="form-label">Pilih Gambar</label>
-          <input class="form-control" type="file" name="image" id="imageUpload" accept="image/*,video/*" required>
-      </div>
-      <button class="btn btn-primary w-100" type="submit">Upload</button>
-  </form>
-</div>
-
-<!-- Hasil Deteksi -->
-{% if result_image %}
-<div class="card p-4 shadow-sm mb-4">
-  <h5 class="mb-3">Hasil Deteksi Gambar</h5>
-  <img src="{{ url_for('static', filename='results/' + result_image) }}" class="img-fluid rounded mx-auto d-block" style="max-width: 400px; height: auto;">
-
-  {% if labels_detected %}
-  <div class="mt-3">
-    <h6>Deskripsi:</h6>
-    {% set label_count = labels_detected | length %}
-    {% set label_dict = {} %}
-    {% for label in labels_detected %}
-        {% set _ = label_dict.update({label: label_dict.get(label, 0) + 1}) %}
-    {% endfor %}
-    <p>Pada gambar yang diupload berhasil mendeteksi <strong>{{ label_count }}</strong> kendaraan dengan rincian:</p>
-    <ul> 
-      {% for key, value in label_dict.items() %}
-        <li>{{ key|capitalize }}: {{ value }} buah</li>
-      {% endfor %}
-    </ul>
-
-    <h6>Detail Prediksi:</h6>
-    <ul>
-      {% for item in detection_details %}
-        <li>{{ item.label|capitalize }} - Akurasi: {{ item.confidence }}</li>
-      {% endfor %}
-    </ul>
-
-  </div>
-  {% endif %}
-</div>
-{% endif %}
-
-{% if result_video %}
-<div class="result-box mt-4">
-    <h3>Hasil Deteksi Video</h3>
-    <video width="640" height="480" controls class="mt-3">
-      <source src="{{ url_for('static', filename='results/' + result_video) }}" type="video/mp4">
-      Browser Anda tidak mendukung tag video.
-    </video>    
-    <div class="mt-3">
-        <a href="{{ url_for('static', filename='results/' + result_video) }}" download class="btn btn-success mt-2">Download Hasil Video</a>
-    </div>
-    <!-- {% if total_detected %}
-    <div class="mt-3">
-        <h5>Total Kendaraan Terdeteksi di Video:</h5>
-        <h2>{{ total_detected }}</h2>
-    </div>
-    {% endif %}  -->
-</div>
-{% endif %}
-
-
-<!-- Chart -->
-<div class="row mb-4">
-    <div class="col">
-        <div class="p-4 bg-light rounded">
-            <h4 class="text-center">Jumlah Kendaraan Terdeteksi</h4>
-            <div id="chartdiv"></div>
+<div class="card mb-5">
+    <div class="card-body p-5">
+        <h3 class="mb-4 fw-bold text-center">
+            <i class="bi bi-graph-line me-2"></i> Tren Penggunaan Jalan Harian (2020-2023)
+        </h3>
+        <p class="text-center text-muted mb-5">
+            Grafik-grafik berikut menampilkan perubahan jumlah pengguna jalan dari berbagai jenis kendaraan dan pejalan kaki setiap harinya selama periode 2020 hingga 2023.
+            Secara umum, terlihat adanya pola musiman dan kecenderungan peningkatan penggunaan jalan seiring berjalannya waktu.
+        </p>
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik2.png') }}" class="img-fluid rounded" alt="Grafik Tren 2020">
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik3.png') }}" class="img-fluid rounded" alt="Grafik Tren 2021">
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik4.png') }}" class="img-fluid rounded" alt="Grafik Tren 2022">
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik5.png') }}" class="img-fluid rounded" alt="Grafik Tren 2023">
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik6.png') }}" class="img-fluid rounded" alt="Grafik Tren 2023">
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<div class="card mb-5">
+    <div class="card-body p-5">
+        <h3 class="mb-4 fw-bold text-center">
+            <i class="bi bi-activity me-2"></i> Prediksi Tren Kendaraan dan Pengguna Jalan di Masa Depan
+        </h3>
+        <p class="text-center text-muted mb-5">
+            Grafik-grafik di bawah ini adalah hasil prediksi tren pergerakan kendaraan (motor, mobil, bus, truk) serta pengguna jalan berdasarkan analisis data historis.
+            Garis berwarna ungu menunjukkan prediksi, sedangkan area di sekitarnya memberikan gambaran tingkat keyakinan prediksi tersebut.
+        </p>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik32.png') }}" class="img-fluid rounded" alt="Prediksi Motor">
+                    <p class="text-center mt-2 text-muted small">Prediksi Lalu Lintas Motor</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik33.png') }}" class="img-fluid rounded" alt="Prediksi Mobil">
+                    <p class="text-center mt-2 text-muted small">Prediksi Lalu Lintas Mobil</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik34.png') }}" class="img-fluid rounded" alt="Prediksi Bus">
+                    <p class="text-center mt-2 text-muted small">Prediksi Lalu Lintas Bus</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik35.png') }}" class="img-fluid rounded" alt="Prediksi Truk">
+                    <p class="text-center mt-2 text-muted small">Prediksi Lalu Lintas Truk</p>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="image-with-shadow h-100">
+                    <img src="{{ url_for('static', filename='grafik/grafik36.png') }}" class="img-fluid rounded" alt="Prediksi Pengguna Jalan">
+                    <p class="text-center mt-2 text-muted small">Prediksi Lalu Lintas Pengguna Jalan</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <h5 class="fw-bold mb-3">Informasi Tambahan:</h5>
+            <ul class="list-unstyled">
+                <li><i class="bi bi-caret-right-fill me-2 text-info"></i> Pola Berulang: Terlihat pola naik-turun harian dan mingguan yang konsisten.</li>
+                <li><i class="bi bi-caret-right-fill me-2 text-info"></i> Tren Masa Depan: Garis ungu tebal adalah prediksi jumlah kendaraan dan pengguna jalan di masa mendatang.</li>
+                <li><i class="bi bi-caret-right-fill me-2 text-info"></i> Tingkat Keyakinan: Area berwarna di sekitar garis prediksi menunjukkan rentang keyakinan model AI. Semakin sempit area ini, semakin tinggi akurasi prediksi yang diharapkan.</li>
+            </ul>
+        </div>
+    </div>
+</div>
 
+<div class="card mb-5">
+    <div class="card-body p-5">
+        <h3 class="mb-4 fw-bold text-center">
+            <i class="bi bi-lightbulb-fill me-2"></i> Manfaat Analisis Prediksi Lalu Lintas
+        </h3>
+        <p class="text-center text-muted mb-5">
+            Informasi dari analisis dan prediksi lalu lintas ini dapat memberikan insight berharga untuk berbagai keperluan.
+        </p>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="benefit-item text-center p-4 rounded shadow-sm">
+                    <i class="bi bi-signpost-2-fill text-primary mb-3" style="font-size: 2rem;"></i>
+                    <h6 class="fw-bold">Perencanaan Tata Kota</h6>
+                    <p class="text-muted small">Membantu pemerintah dan perencana kota dalam merencanakan infrastruktur jalan, transportasi publik, dan fasilitas umum lainnya berdasarkan proyeksi kebutuhan di masa depan.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="benefit-item text-center p-4 rounded shadow-sm">
+                    <i class="bi bi-traffic-light-fill text-success mb-3" style="font-size: 2rem;"></i>
+                    <h6 class="fw-bold">Manajemen Lalu Lintas</h6>
+                    <p class="text-muted small">Memungkinkan otoritas lalu lintas untuk mengantisipasi kepadatan, mengatur sinyal lalu lintas secara adaptif, dan merencanakan rekayasa lalu lintas yang lebih efektif.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="benefit-item text-center p-4 rounded shadow-sm">
+                    <i class="bi bi-briefcase-fill text-warning mb-3" style="font-size: 2rem;"></i>
+                    <h6 class="fw-bold">Pengambilan Keputusan Bisnis</h6>
+                    <p class="text-muted small">Memberikan informasi penting bagi pelaku bisnis dalam menentukan lokasi usaha yang strategis, mengatur jadwal operasional, dan mengoptimalkan rantai pasokan berdasarkan pola lalu lintas.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- Styles for Chart -->
-<style>
-    #chartdiv {
-      width: 100%;
-      height: 500px;
-    }
-</style>
-
-<!-- Load amCharts Library -->
-<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
-<script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
-<script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
-
-<!-- Chart code -->
-<script>
-am5.ready(function() {
-
-    var labels = {{ label_counts.keys() | default([]) | list | safe }};
-    var counts = {{ label_counts.values() | default([]) | list | safe }};
-
-
-    // Gabungkan label dan count jadi array objek [{country: label, value: count}, ...]
-    var chartData = [];
-    for (var i = 0; i < labels.length; i++) {
-        chartData.push({
-            country: labels[i],
-            value: counts[i]
-        });
-    }
-
-
-    // Create root
-    var root = am5.Root.new("chartdiv");
-
-    root.setThemes([
-      am5themes_Animated.new(root)
-    ]);
-
-    var chart = root.container.children.push(am5xy.XYChart.new(root, {
-      panX: true,
-      panY: true,
-      wheelX: "panX",
-      wheelY: "zoomX",
-      pinchZoomX: true
-    }));
-
-    var cursor = chart.set("cursor", am5xy.XYCursor.new(root, {}));
-    cursor.lineY.set("visible", false);
-
-    var xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 30 });
-    xRenderer.labels.template.setAll({
-      rotation: -45,
-      centerY: am5.p50,
-      centerX: am5.p100,
-      paddingRight: 15
-    });
-
-    var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
-      categoryField: "country",
-      renderer: xRenderer,
-      tooltip: am5.Tooltip.new(root, {})
-    }));
-
-    var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
-      renderer: am5xy.AxisRendererY.new(root, {})
-    }));
-
-    var series = chart.series.push(am5xy.ColumnSeries.new(root, {
-      name: "Jumlah Kendaraan",
-      xAxis: xAxis,
-      yAxis: yAxis,
-      valueYField: "value",
-      categoryXField: "country",
-      tooltip: am5.Tooltip.new(root, {
-        labelText:"{valueY}"
-      })
-    }));
-
-    series.columns.template.setAll({ cornerRadiusTL: 5, cornerRadiusTR: 5, strokeOpacity: 0 });
-    series.columns.template.adapters.add("fill", (fill, target) => {
-      return chart.get("colors").getIndex(series.columns.indexOf(target));
-    });
-
-    series.columns.template.adapters.add("stroke", (stroke, target) => {
-      return chart.get("colors").getIndex(series.columns.indexOf(target));
-    });
-
-    xAxis.data.setAll(chartData);
-    series.data.setAll(chartData);
-
-    series.appear(1000);
-    chart.appear(1000, 100);
-
-}); // end am5.ready()
-</script>
-
+<div class="card mb-5">
+    <div class="card-body p-5 text-center">
+        <h3 class="mb-4 fw-bold">
+            <i class="bi bi-magic me-2"></i> Ingin Melakukan Deteksi Kendaraan?
+        </h3>
+        <p class="text-center text-muted mb-4">
+            Anda dapat mengunggah gambar atau video untuk mendeteksi kendaraan secara langsung menggunakan sistem AI kami.
+        </p>
+        <a href="{{ url_for('detect') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-upload me-2"></i> Lakukan Deteksi Sekarang
+        </a>
+    </div>
+</div>
 {% endblock %}

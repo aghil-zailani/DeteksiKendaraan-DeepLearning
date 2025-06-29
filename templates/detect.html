@@ -1,0 +1,278 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Deteksi Kendaraan</h1>
+</div>
+
+<div class="row justify-content-center mb-5">
+    <div class="col-md-12"> <div class="stats-card bg-primary-gradient">
+            <i class="bi bi-images"></i>
+            <h4>Total Gambar Diupload</h4>
+            <h2>{{ total_images }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="card upload-form-card mb-5">
+    <div class="card-body">
+        <h4 class="mb-4">
+            <i class="bi bi-cloud-arrow-up-fill me-2"></i>
+            Upload Gambar atau Video
+        </h4>
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+            <div class="mb-4">
+                <input class="form-control form-control-lg" type="file" name="image" id="imageUpload" 
+                       accept="image/*,video/*" required>
+            </div>
+            <button class="btn btn-primary btn-lg" type="submit" id="uploadBtn">
+                <i class="bi bi-magic me-2"></i>
+                <span>Upload & Deteksi</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if result_image %}
+<div class="card mb-5">
+    <div class="card-body p-5">
+        <h3 class="mb-4 fw-bold text-center">
+            <i class="bi bi-camera-fill me-2"></i>
+            Hasil Deteksi Gambar
+        </h3>
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <div class="result-image-container">
+                    <img src="{{ url_for('static', filename='results/' + result_image) }}" 
+                         class="result-image" alt="Hasil Deteksi">
+                </div>
+            </div>
+            <div class="col-lg-6">
+                {% if labels_detected %}
+                <div class="result-description">
+                    <h6>
+                        <i class="bi bi-bar-chart-line-fill me-2"></i>
+                        Ringkasan Deteksi
+                    </h6>
+                    {% set label_count = labels_detected | length %}
+                    {% set label_dict = {} %}
+                    {% for label in labels_detected %}
+                        {% set _ = label_dict.update({label: label_dict.get(label, 0) + 1}) %}
+                    {% endfor %}
+                    <p class="mb-4">
+                        Pada gambar yang diupload, berhasil mendeteksi total 
+                        <strong class="text-primary">{{ label_count }}</strong> kendaraan dengan rincian:
+                    </p>
+                    <ul class="list-group list-group-flush mb-4"> 
+                        {% for key, value in label_dict.items() %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-{{ 'truck' if key == 'truck' else 'car-front' }} me-2"></i>
+                                    {{ key|capitalize }}
+                                </span>
+                                <span class="badge bg-primary rounded-pill">{{ value }} buah</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <h6>
+                        <i class="bi bi-clipboard-data-fill me-2"></i>
+                        Detail Prediksi
+                    </h6>
+                    <ul class="list-group list-group-flush">
+                        {% for item in detection_details %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-{{ 'truck' if item.label == 'truck' else 'car-front' }} me-2"></i>
+                                    {{ item.label|capitalize }}
+                                </span>
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle me-1"></i>
+                                    {{ '%.1f'|format(item.confidence * 100) }}%
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% else %}
+                <div class="alert alert-warning text-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Tidak ada kendaraan terdeteksi</strong>
+                    <p class="mb-0 mt-2">Coba upload gambar lain dengan kendaraan yang lebih jelas</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if result_video %}
+<div class="card mb-5">
+    <div class="card-body p-5">
+        <h3 class="mb-4 fw-bold text-center">
+            <i class="bi bi-play-circle-fill me-2"></i>
+            Hasil Deteksi Video
+        </h3>
+        <div class="text-center">
+            <div class="position-relative d-inline-block">
+                <video width="720" height="480" controls class="rounded shadow-lg" style="max-width: 100%;">
+                    <source src="{{ url_for('static', filename='results/' + result_video) }}" type="video/mp4">
+                    Browser Anda tidak mendukung tag video.
+                </video>
+            </div>
+        </div>
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('static', filename='results/' + result_video) }}" 
+               download class="btn btn-success btn-lg me-3">
+                <i class="bi bi-download me-2"></i>
+                Unduh Video Hasil
+            </a>
+            {% if total_detected %}
+            <div class="mt-3">
+                <span class="badge bg-info fs-6 p-2">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Total Deteksi: {{ total_detected }} kendaraan
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card chart-card">
+    <div class="card-body">
+        <h4 class="text-center mb-4 fw-bold">
+            <i class="bi bi-graph-up me-2"></i>
+            Grafik Deteksi Kendaraan
+        </h4>
+        <div id="chartdiv" style="width: 100%; height: 500px;"></div>
+    </div>
+</div>
+
+<script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+<script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+
+<script>
+// Enhanced Form Submission
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const btn = document.getElementById('uploadBtn');
+    const btnText = btn.querySelector('span');
+    const btnIcon = btn.querySelector('i');
+    
+    btn.disabled = true;
+    // Cek apakah icon adalah bi-magic, jika ya, ganti dengan loading
+    if (btnIcon.classList.contains('bi-magic')) {
+        btnIcon.className = 'loading me-2';
+    }
+    btnText.textContent = 'Memproses...';
+});
+
+// Enhanced File Input
+document.getElementById('imageUpload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const fileSize = (file.size / 1024 / 1024).toFixed(2);
+        const fileType = file.type.split('/')[0];
+        
+        // Show file info
+        const existingInfo = document.querySelector('.file-info');
+        if (existingInfo) existingInfo.remove();
+        
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'file-info mt-2 p-3 bg-light rounded';
+        fileInfo.innerHTML = `
+            <i class="bi bi-${fileType === 'image' ? 'image' : 'camera-video'} me-2"></i>
+            <strong>${file.name}</strong> (${fileSize} MB)
+        `;
+        e.target.parentNode.appendChild(fileInfo);
+    }
+});
+
+// Enhanced Chart
+am5.ready(function() {
+    var labels = {{ label_counts.keys() | default([]) | list | safe }};
+    var counts = {{ label_counts.values() | default([]) | list | safe }};
+
+    // Gabungkan label dan count jadi array objek [{category: label, value: count}, ...]
+    var chartData = [];
+    for (var i = 0; i < labels.length; i++) {
+        chartData.push({
+            category: labels[i],
+            value: counts[i]
+        });
+    }
+
+    if (chartData.length === 0) {
+        // Tampilkan pesan jika tidak ada data
+        document.getElementById("chartdiv").innerHTML = '<div class="alert alert-info text-center">Belum ada data untuk ditampilkan dalam grafik. Silakan upload gambar terlebih dahulu.</div>';
+        return; // Hentikan eksekusi script chart
+    }
+
+    // Create root
+    var root = am5.Root.new("chartdiv");
+
+    root.setThemes([
+      am5themes_Animated.new(root)
+    ]);
+
+    var chart = root.container.children.push(am5xy.XYChart.new(root, {
+      panX: true,
+      panY: true,
+      wheelX: "panX",
+      wheelY: "zoomX",
+      pinchZoomX: true
+    }));
+
+    var cursor = chart.set("cursor", am5xy.XYCursor.new(root, {}));
+    cursor.lineY.set("visible", false);
+
+    var xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 30 });
+    xRenderer.labels.template.setAll({
+      rotation: -45,
+      centerY: am5.p50,
+      centerX: am5.p100,
+      paddingRight: 15
+    });
+
+    var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
+      categoryField: "category",
+      renderer: xRenderer,
+      tooltip: am5.Tooltip.new(root, {})
+    }));
+
+    var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+      renderer: am5xy.AxisRendererY.new(root, {})
+    }));
+
+    var series = chart.series.push(am5xy.ColumnSeries.new(root, {
+      name: "Jumlah Kendaraan",
+      xAxis: xAxis,
+      yAxis: yAxis,
+      valueYField: "value",
+      categoryXField: "category",
+      tooltip: am5.Tooltip.new(root, {
+        labelText:"{category}: {valueY}"
+      })
+    }));
+
+    series.columns.template.setAll({ cornerRadiusTL: 5, cornerRadiusTR: 5, strokeOpacity: 0 });
+    series.columns.template.adapters.add("fill", (fill, target) => {
+      return chart.get("colors").getIndex(series.columns.indexOf(target));
+    });
+
+    series.columns.template.adapters.add("stroke", (stroke, target) => {
+      return chart.get("colors").getIndex(series.columns.indexOf(target));
+    });
+
+    xAxis.data.setAll(chartData);
+    series.data.setAll(chartData);
+
+    series.appear(1000);
+    chart.appear(1000, 100);
+
+}); // end am5.ready()
+</script>
+{% endblock %}

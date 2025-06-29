@@ -1,52 +1,95 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h1>Riwayat Deteksi</h1>
-
-<div class="table-box">
-    <table id="historyTable" class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Gambar</th>
-                <th>Label</th>
-                <th>Confidence</th>
-                <th>Waktu</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for filename, predictions in grouped.items() %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td><img src="{{ url_for('static', filename='results/result_' + filename) }}" width="100"></td>
-                <td>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        {% for p in predictions %}
-                        <li>{{ p['label'] }}</li>
-                        {% endfor %}
-                    </ul>
-                </td>
-                <td>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        {% for p in predictions %}
-                        <li>{{ '%.2f'|format(p['confidence']) }}</li>
-                        {% endfor %}
-                    </ul>
-                </td>
-                <td>{{ predictions[0]['waktu'] }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="page-header">
+    <h1>Riwayat Deteksi</h1>
+    <p class="page-subtitle">Lihat dan telusuri semua hasil deteksi yang pernah dilakukan</p>
 </div>
 
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<div class="card p-5">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="historyTable" class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="text-center">No.</th>
+                        <th class="text-center">Gambar Hasil</th>
+                        <th>Label Deteksi</th>
+                        <th>Akurasi</th>
+                        <th>Waktu Deteksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for filename, predictions in grouped.items() %}
+                    <tr>
+                        <td class="align-middle text-center">{{ loop.index }}</td>
+                        <td class="align-middle text-center">
+                            {% if filename.endswith(('.mp4', '.avi', '.mov')) %}
+                                <a href="{{ url_for('static', filename='results/result_' + filename) }}" target="_blank">
+                                    <i class="bi bi-camera-video-fill text-primary" style="font-size: 2.5rem;"></i>
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('static', filename='results/' + 'result_' + filename) }}" target="_blank">
+                                    <img src="{{ url_for('static', filename='results/' + 'result_' + filename) }}" 
+                                         class="img-thumbnail rounded-3" 
+                                         style="width: 120px; height: auto; cursor: pointer;"
+                                         alt="Gambar Deteksi">
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
+                                {% for p in predictions %}
+                                    <li><span class="badge rounded-3 text-bg-secondary">{{ p['label']|capitalize }}</span></li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="align-middle">
+                            <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
+                                {% for p in predictions %}
+                                    <li><span class="badge bg-success-subtle text-success-emphasis rounded-3">{{ '%.1f'|format(p['confidence'] * 100) }}%</span></li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="align-middle text-muted small">{{ predictions[0]['waktu'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
 <script>
     $(document).ready(function() {
         $('#historyTable').DataTable({
-            "pageLength": 10
+            "pageLength": 10,
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
+            },
+            "columnDefs": [
+                { "orderable": false, "targets": [1, 2, 3] } // Disable sorting for non-numeric columns
+            ]
+        });
+    });
+
+    // Add JavaScript to trigger the image preview modal from layout.html
+    document.addEventListener('DOMContentLoaded', function () {
+        var imageModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+        var modalImage = document.getElementById('modalImage');
+
+        // Target all images with the img-thumbnail class within the table
+        document.querySelectorAll('.img-thumbnail').forEach(item => {
+            item.style.cursor = 'pointer'; 
+            item.addEventListener('click', event => {
+                modalImage.src = event.target.src;
+                imageModal.show();
+            });
         });
     });
 </script>
